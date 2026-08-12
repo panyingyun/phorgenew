@@ -1,3 +1,13 @@
 [safe]
         directory = /var/www/phorge/phorge
         directory = /var/www/phorge/arcanist
+
+# Persistent git proxy (baked into the image via /etc/gitconfig).
+# Applied to every git operation inside the container. The proxy address is
+# the host proxy (127.0.0.1:7890); it is reachable because the image is
+# built and (optionally) run with host networking.
+[http]
+        proxy = http://127.0.0.1:7890
+
+[https]
+        proxy = https://127.0.0.1:7890

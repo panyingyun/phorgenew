@@ -1,2 +1,5 @@
 .reasonix/
 reasonix.toml
+
+# Vendored phorge/arcanist sources used as offline build context
+phorge-src/

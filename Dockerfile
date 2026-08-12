@@ -1,6 +1,6 @@
 FROM php:8.3-fpm-alpine
 
-LABEL maintainer="rrvenn@proton.me"
+LABEL maintainer="panyingyun@gmail.com"
 
 ENV SSH_PORT=8022 \
     PHORGE_GIT_USER=root \
@@ -11,11 +11,15 @@ VOLUME /storage
 
 EXPOSE 8022 80 443
 
+# Switch the apk (Alpine package manager, the "apt" equivalent on Alpine)
+# mirror to Huawei Cloud for faster downloads in CN.
+RUN sed -i 's|dl-cdn.alpinelinux.org|mirrors.huaweicloud.com|g' /etc/apk/repositories
+
 # Install runtime packages and build dependencies, then install PHP extensions.
 # Uses the official PHP helper tools (`docker-php-ext-*`) and PECL for extensions like APCu.
 RUN apk add --no-cache --virtual .build-deps \
         $PHPIZE_DEPS \
-        freetype-dev libjpeg-turbo-dev libpng-dev zlib-dev libzip-dev oniguruma-dev libxml2-dev curl-dev openssl-dev ldb-dev openldap-dev 
+        freetype-dev libjpeg-turbo-dev libpng-dev zlib-dev libzip-dev oniguruma-dev libxml2-dev curl-dev openssl-dev openldap-dev
 
 RUN apk add --no-cache \
         git \
@@ -47,6 +51,12 @@ RUN apk add --no-cache \
 
 RUN pecl install apcu
 RUN docker-php-ext-enable apcu
+
+# Configure Python: install pip and switch its index to the Huawei Cloud PyPI
+# mirror (pip package downloads come from Huawei Cloud).
+RUN apk add --no-cache py3-pip \
+    && pip3 config set global.index-url https://mirrors.huaweicloud.com/repository/pypi/simple/
+
 RUN docker-php-ext-configure gd --with-freetype=/usr/include/freetype2 --with-jpeg=/usr/include \
     && docker-php-ext-install -j"$(nproc)" opcache pcntl gd pdo_mysql mysqli mbstring zip ldap \
     && docker-php-ext-enable zip apcu ldap pcntl
@@ -55,9 +65,17 @@ RUN if [ -f /usr/libexec/git-core/git-http-backend ]; then ln -sf /usr/libexec/g
     && apk del .build-deps \
     && rm -rf /var/cache/apk/*
 
-# Download phorge sources
-RUN mkdir -p /var/www/phorge/
-RUN git clone https://github.com/phorgeit/arcanist.git /var/www/phorge/arcanist \
+# Download phorge sources from GitHub through the persistent git proxy.
+# The same proxy is baked into /etc/gitconfig (see configs/gitconfig) so it
+# survives image rebuilds and container restarts. Build with host networking
+# so 127.0.0.1 inside the build container reaches the host proxy:
+#   docker build --network host -t phorge-zh:latest .
+# (Offline fallback: vendor the sources into ./phorge-src/ and replace the
+# git clone below with COPY ./phorge-src/... — see git history.)
+RUN git config --global http.proxy http://127.0.0.1:7890 \
+    && git config --global https.proxy https://127.0.0.1:7890 \
+    && mkdir -p /var/www/phorge/ \
+    && git clone https://github.com/phorgeit/arcanist.git /var/www/phorge/arcanist \
     && git clone https://github.com/phorgeit/phorge.git /var/www/phorge/phorge
 
 # Copy Chinese (zh_CN) language pack into phorge extensions directory.
