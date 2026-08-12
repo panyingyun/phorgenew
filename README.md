@@ -174,6 +174,57 @@ git push
 - 大文件最终存储在对象存储(RustFS / S3)中,需保证其容量与带宽满足需求;
 - 可用 `git lfs ls-files` 查看仓库中已跟踪的 LFS 文件。
 
+### 2.6 推荐配置(生产建议)
+
+以下配置基于 Phorge 官方文档(`src/docs/user/configuration/`)与配置选项源码整理。
+
+**本实例已自动开启的配置**:
+
+| 配置项 | 值 | 说明 |
+|---|---|---|
+| `phabricator.base-uri` | `http://<BASE_URI>/` | 实例访问地址(startup.sh 自动设置) |
+| `phabricator.timezone` | `.env` 的 `PHORGE_TIMEZONE` | 时区 |
+| `pygments.enabled` | true | 代码高亮 |
+| `diffusion.allow-http-auth` | true | 允许 HTTP 方式访问 Git 仓库 |
+| `diffusion.allow-git-lfs` | true | Git LFS |
+| `cluster.mailers` | postfix/sendmail | 外发邮件 |
+| `amazon-s3.*` / `storage.s3.bucket` | RustFS | 文件对象存储 |
+| `storage.mysql-engine.max-size` | 0 | 强制文件走 S3 引擎 |
+
+**生产环境推荐开启/设置**(用 `docker compose exec ph-web sh -c 'cd /var/www/phorge/phorge && bin/config set <key> <value>'` 设置):
+
+| 配置项 | 默认 | 推荐 | 用途 |
+|---|---|---|---|
+| `auth.require-email-verification` | `false` | `true` | 注册后需验证邮箱,防垃圾账号 |
+| `auth.email-domains` | 空 | 公司域名 | 只允许特定域名注册 |
+| `account.minimum-password-length` | 0 | 8~12 | 最短密码长度 |
+| `security.require-https` | `false` | `true`(有 TLS 时) | 强制 HTTPS |
+| `security.require-multi-factor-auth` | `false` | `true`(高权限账号) | 强制 MFA(需先配置 MFA provider) |
+| `keyring` | 未配置 | 配置主加密密钥 | 文件/密码静态加密(AES-256) |
+| `phabricator.allowed-uris` | 空 | 补充 URI | 多域名/内网地址白名单 |
+| `metamta.default-address` | 空 | 发件地址 | 邮件 From 地址,否则可能被拒收 |
+| `feed.http-hooks` | 空 | 按需 | 事件 webhook,对接外部系统 |
+| `policy.allow-public` | `false` | 按需 | 允许"公开(所有人可见)"策略对象 |
+
+**可选/按需开启**:
+
+| 配置项 | 默认 | 用途 |
+|---|---|---|
+| `phabricator.show-prototypes` | `false` | 显示实验性原型应用 |
+| `phabricator.serious-business` | `false` | 严肃模式,隐藏趣味彩蛋 |
+| `notification.servers` | 空 | 实时通知(aphlict);未配置时页面提示 "Notification server not enabled" |
+| `remarkup.enable-embedded-youtube` | `false` | 评论/文档嵌入 YouTube |
+| `ui.favicons` / `ui.logo` / `ui.footer-items` | 空 | 自定义图标 / Logo / 页脚 |
+| `metamta.reply-handler-domain` | 空 | 邮件回复创建评论(需 inbound email) |
+
+**仅调试期开启,生产环境应保持关闭**:
+
+| 配置项 | 默认 | 说明 |
+|---|---|---|
+| `phabricator.developer-mode` | `false` | 详细报错 + 磁盘直读,有安全/性能风险 |
+| `darkconsole.enabled` / `darkconsole.always-on` | `false` | 页脚调试控制台 |
+| `debug.profile-rate` / `debug.sample-rate` | 0 | 性能剖析采样 |
+
 ---
 
 ## 3、仓库 fork 自
