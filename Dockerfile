@@ -60,6 +60,10 @@ RUN mkdir -p /var/www/phorge/
 RUN git clone https://github.com/phorgeit/arcanist.git /var/www/phorge/arcanist \
     && git clone https://github.com/phorgeit/phorge.git /var/www/phorge/phorge
 
+# Copy Chinese (zh_CN) language pack into phorge extensions directory.
+# Phorge auto-discovers translation classes in src/extensions/ at runtime.
+COPY ./extensions/ /var/www/phorge/phorge/src/extensions/
+
 # copy nginx config (the repo provides a custom nginx.conf)
 COPY ./configs/nginx-ph.conf /etc/nginx/sites-available/phorge.conf
 COPY ./configs/nginx.conf /etc/nginx/nginx.conf

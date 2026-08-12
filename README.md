@@ -66,6 +66,18 @@ Notes on variables
 - `GIT_USER`: the image creates this user (if missing) and configures Phorge to use it for SSH/Git access.
 - `MINIO_SERVER` and related keys are used to configure Phorge's S3 storage settings — if you don't provide them, built-in file storage will be used.
 
+Chinese (zh_CN) localization
+-----------------------------
+This image bundles a Simplified Chinese language pack (see `extensions/`), covering the most
+frequently used UI strings (navigation, buttons, menus, settings, common actions). To use it:
+
+1. Log in to Phorge.
+2. Go to **Settings → Translation** and select **中文 (简体中文)**.
+3. The UI switches to Chinese; untranslated strings fall back to English.
+
+The pack is deployed automatically into Phorge's `src/extensions/` directory during the image
+build, so it survives container restarts and image rebuilds.
+
 Example: quick run with `docker run`
 ----------------------------------
 You can also run the image directly (example):
