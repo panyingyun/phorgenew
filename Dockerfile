@@ -23,6 +23,7 @@ RUN apk add --no-cache --virtual .build-deps \
 
 RUN apk add --no-cache \
         git \
+        git-lfs \
         nginx \
         bash \
         libpng \

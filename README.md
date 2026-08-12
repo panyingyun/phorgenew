@@ -139,6 +139,41 @@ docker compose down -v      # 停止并删除数据卷(会清空数据库与文�
 docker compose exec ph-web sh -c 'cd /var/www/phorge/phorge && bin/storage upgrade --force'   # 升级数据库结构
 ```
 
+### 2.5 Git LFS 使用
+
+本镜像已启用 Git LFS:
+
+- 镜像内置 `git-lfs` 客户端(Alpine 包,随镜像安装);
+- 启动时自动设置 `diffusion.allow-git-lfs true`,Phorge 的 Git LFS 端点自动可用。
+
+**前提**:使用 LFS 的仓库必须是 **hosted(托管)Git 仓库**(在 Phorge 的 Diffusion 中创建,而非导入的外部仓库)。
+
+**本地使用步骤**:
+
+```bash
+# 1. 克隆 Phorge 中的 hosted Git 仓库
+git clone http://phorge.local/diffusion/<CALLSIGN>/<repo>.git
+cd <repo>
+
+# 2. 初始化并跟踪大文件(一次性)
+git lfs install
+git lfs track "*.bin"            # 按需改为你的大文件模式,如 "*.zip" "*.iso"
+
+# 3. 提交并推送
+git add .gitattributes
+git add <大文件>
+git commit -m "track lfs files"
+git push
+```
+
+推送后,大文件内容由 Phorge 通过 Git LFS 端点(`/diffusion/lfs/...`)存储,仓库本身只保存指针;克隆时 `git lfs pull`(或 `git clone` 时自动)拉取真实内容。
+
+**注意事项**:
+
+- 如提示 `Git LFS operation is not supported by this server`,确认配置已生效:`docker compose exec ph-web sh -c 'cd /var/www/phorge/phorge && bin/config get diffusion.allow-git-lfs'`;
+- 大文件最终存储在对象存储(RustFS / S3)中,需保证其容量与带宽满足需求;
+- 可用 `git lfs ls-files` 查看仓库中已跟踪的 LFS 文件。
+
 ---
 
 ## 3、仓库 fork 自

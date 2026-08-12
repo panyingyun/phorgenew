@@ -38,6 +38,8 @@ bash /regenerate-ssh-keys.sh
 /var/www/phorge/phorge/bin/config set mysql.user $PHORGE_MYSQL_USER
 /var/www/phorge/phorge/bin/config set mysql.pass $PHORGE_MYSQL_PASS
 /var/www/phorge/phorge/bin/config set diffusion.allow-http-auth true
+#Enable Git LFS (requires the git-lfs package, installed in the Dockerfile)
+/var/www/phorge/phorge/bin/config set diffusion.allow-git-lfs true
 
 if [ "$PROTOCOL" == "https" ]
 then
