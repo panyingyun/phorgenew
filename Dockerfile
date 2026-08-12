@@ -78,6 +78,11 @@ RUN git config --global http.proxy http://127.0.0.1:7890 \
     && git clone https://github.com/phorgeit/arcanist.git /var/www/phorge/arcanist \
     && git clone https://github.com/phorgeit/phorge.git /var/www/phorge/phorge
 
+# Patch arcanist's AWS client for custom HTTP S3 endpoints (RustFS/MinIO):
+# allows http:// endpoints and fixes the SigV4 Host header on non-default ports.
+COPY ./scripts/patch-aws-http.sh /patch-aws-http.sh
+RUN chmod +x /patch-aws-http.sh && /patch-aws-http.sh && rm /patch-aws-http.sh
+
 # Copy Chinese (zh_CN) language pack into phorge extensions directory.
 # Phorge auto-discovers translation classes in src/extensions/ at runtime.
 COPY ./extensions/ /var/www/phorge/phorge/src/extensions/

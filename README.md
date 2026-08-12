@@ -87,7 +87,7 @@ PHORGE_MYSQL_USER="phorge_user"
 PHORGE_MYSQL_PASS="strongpassword"
 PHORGE_MYSQL_DATABASE="phabricator_config"
 
-# S3 存储(MinIO,compose 已包含 ph-storage 服务)
+# S3 存储(RustFS,compose 已包含 ph-storage 服务;兼容 MinIO)
 PHORGE_STORAGE_ENGINE=s3
 PHORGE_STORAGE_S3_SERVER=ph-storage
 PHORGE_STORAGE_S3_PORT=9000
@@ -112,7 +112,7 @@ docker compose logs -f ph-web # 查看日志
 启动后访问:
 
 - Phorge Web:`http://<PHORGE_BASE_URI>/`(本机需在 `/etc/hosts` 添加 `127.0.0.1 phorge.local`)
-- MinIO 控制台:`http://<服务器IP>:9000`
+- RustFS 控制台:`http://<服务器IP>:9001`(S3 API 端口 9000)
 
 ### 2.3 首次使用(启用登录与中文)
 

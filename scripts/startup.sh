@@ -54,14 +54,40 @@ then
     /var/www/phorge/phorge/bin/config set storage.local-disk.path /storage
 fi
 
-# S3 / MinIO configuration — only when storage engine explicitly set to 's3'
+# S3 / MinIO / RustFS configuration — only when storage engine explicitly set to 's3'
 if [ "$PHORGE_STORAGE_ENGINE" == "s3" ] && [ ! -z "$PHORGE_STORAGE_S3_SERVER" ] && [ ! -z "$PHORGE_STORAGE_S3_SERVER_SECRET_KEY" ] && [ ! -z "$PHORGE_STORAGE_S3_SERVER_ACCESS_KEY" ] && [ ! -z "$PHORGE_STORAGE_S3_PORT" ] && [ ! -z "$PHORGE_STORAGE_S3_REGION" ]
 then
   /var/www/phorge/phorge/bin/config set storage.s3.bucket $PHORGE_STORAGE_S3_SERVER
   /var/www/phorge/phorge/bin/config set amazon-s3.secret-key $PHORGE_STORAGE_S3_SERVER_SECRET_KEY
   /var/www/phorge/phorge/bin/config set amazon-s3.access-key $PHORGE_STORAGE_S3_SERVER_ACCESS_KEY
-  /var/www/phorge/phorge/bin/config set amazon-s3.endpoint $PHORGE_STORAGE_S3_SERVER:$PHORGE_STORAGE_S3_PORT
+  # Use plain HTTP for the local S3 endpoint (RustFS/MinIO on :9000). The
+  # arcanist AWS client is patched (scripts/patch-aws-http.sh) to accept an
+  # explicit scheme in the endpoint.
+  /var/www/phorge/phorge/bin/config set amazon-s3.endpoint "http://$PHORGE_STORAGE_S3_SERVER:$PHORGE_STORAGE_S3_PORT"
   /var/www/phorge/phorge/bin/config set amazon-s3.region $PHORGE_STORAGE_S3_REGION
+  # Force all files to the S3 engine instead of the MySQL blob engine
+  # (Phorge picks the lowest-priority writable engine first; blob is priority 1).
+  /var/www/phorge/phorge/bin/config set storage.mysql-engine.max-size 0
+  # Create the S3 bucket if it does not exist (RustFS/MinIO do not create it
+  # automatically; a 404 on PUT would otherwise be silently swallowed).
+  php -r '
+    require "/var/www/phorge/phorge/scripts/init/init-setup.php";
+    $bucket = PhabricatorEnv::getEnvConfig("storage.s3.bucket");
+    $s3 = id(new PhutilAWSS3Future())
+      ->setAccessKey(PhabricatorEnv::getEnvConfig("amazon-s3.access-key"))
+      ->setSecretKey(new PhutilOpaqueEnvelope(PhabricatorEnv::getEnvConfig("amazon-s3.secret-key")))
+      ->setRegion(PhabricatorEnv::getEnvConfig("amazon-s3.region"))
+      ->setEndpoint(PhabricatorEnv::getEnvConfig("amazon-s3.endpoint"))
+      ->setBucket($bucket)
+      ->setHTTPMethod("PUT")
+      ->setPath($bucket);
+    try {
+      $s3->resolve();
+      echo "S3 bucket \"".$bucket."\" ready\n";
+    } catch (Exception $ex) {
+      fwrite(STDERR, "WARNING: S3 bucket create failed: ".$ex->getMessage()."\n");
+    }
+  '
 fi
 
 # Configure SMTP mailer postfix
