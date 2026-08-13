@@ -1,6 +1,6 @@
 services:
   ph-web:
-    image: phorge-zh:latest
+    image: harbor.michaelapp.com/library/phorge-zh:v2026
     restart: always
     ports:
       - "8022:8022"
