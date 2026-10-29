@@ -7,11 +7,17 @@ if id "$PHORGE_GIT_USER" >/dev/null 2>&1; then
 else
   addgroup "$PHORGE_GIT_USER"
   adduser "$PHORGE_GIT_USER" -G "$PHORGE_GIT_USER" -D -h /var/repo
-  echo "$PHORGE_GIT_USER ALL=(daemon) SETENV: NOPASSWD: /bin/ls, /usr/bin/git, /usr/bin/git-upload-pack, /usr/bin/git-receive-pack, /usr/bin/ssh" >> /etc/sudoers
-  chown -R $PHORGE_GIT_USER /var/repo
-  /var/www/phorge/phorge/bin/config set phd.user $PHORGE_GIT_USER
-  /var/www/phorge/phorge/bin/config set diffusion.ssh-user $PHORGE_GIT_USER
 fi
+
+# PHP-FPM runs as www-data and sudo's to phd.user (git) for Diffusion commands.
+# The rule must be www-data -> git, not git -> daemon.
+sed -i "/^${PHORGE_GIT_USER} ALL=(daemon) SETENV: NOPASSWD:/d" /etc/sudoers
+if ! grep -q "^www-data ALL=(${PHORGE_GIT_USER}) SETENV: NOPASSWD:" /etc/sudoers; then
+  echo "www-data ALL=(${PHORGE_GIT_USER}) SETENV: NOPASSWD: /bin/ls, /usr/bin/git, /usr/bin/git-upload-pack, /usr/bin/git-receive-pack, /usr/bin/ssh, /usr/libexec/git-core/git-http-backend, /usr/lib/git-core/git-http-backend" >> /etc/sudoers
+fi
+chown -R "$PHORGE_GIT_USER" /var/repo
+/var/www/phorge/phorge/bin/config set phd.user "$PHORGE_GIT_USER"
+/var/www/phorge/phorge/bin/config set diffusion.ssh-user "$PHORGE_GIT_USER"
 
 mkdir /run/sshd
 
