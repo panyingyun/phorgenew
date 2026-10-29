@@ -92,7 +92,9 @@ COPY ./extensions/ /var/www/phorge/phorge/src/extensions/
 COPY ./configs/nginx-ph.conf /etc/nginx/sites-available/phorge.conf
 COPY ./configs/nginx.conf /etc/nginx/nginx.conf
 RUN mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled \
-    && ln -sf /etc/nginx/sites-available/phorge.conf /etc/nginx/sites-enabled/phorge.conf
+    && ln -sf /etc/nginx/sites-available/phorge.conf /etc/nginx/sites-enabled/phorge.conf \
+    && mkdir -p /var/lib/nginx/tmp/client_body \
+    && chown -R www-data:www-data /var/lib/nginx
 
 # copy git config
 COPY ./configs/gitconfig /etc/gitconfig

@@ -154,5 +154,8 @@ sed -i "s/  server_name phorge.local;/  server_name $PHORGE_BASE_URI;/g" /etc/ng
 /var/www/phorge/phorge/bin/config set pygments.enabled true
 #setup db in not exists
 /var/www/phorge/phorge/bin/storage upgrade --force
+# nginx runs as www-data; the package temp dir is owned by nginx and blocks LFS uploads
+mkdir -p /var/lib/nginx/tmp/client_body
+chown -R www-data:www-data /var/lib/nginx
 #start supervisord
 /usr/bin/supervisord -n -c /etc/supervisord.conf
