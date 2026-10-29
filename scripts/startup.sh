@@ -9,6 +9,12 @@ else
   adduser "$PHORGE_GIT_USER" -G "$PHORGE_GIT_USER" -D -h /var/repo
 fi
 
+# Alpine adduser leaves the shadow password as "!", and OpenSSH 10 refuses
+# pubkey logins for locked accounts. Set a random password (SSH passwords stay disabled).
+if grep -q "^${PHORGE_GIT_USER}:!" /etc/shadow; then
+  printf '%s:%s\n' "$PHORGE_GIT_USER" "$(head -c 24 /dev/urandom | base64 | tr -d '\n')" | chpasswd
+fi
+
 # PHP-FPM runs as www-data and sudo's to phd.user (git) for Diffusion commands.
 # The rule must be www-data -> git, not git -> daemon.
 sed -i "/^${PHORGE_GIT_USER} ALL=(daemon) SETENV: NOPASSWD:/d" /etc/sudoers
