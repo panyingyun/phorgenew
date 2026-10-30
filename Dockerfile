@@ -71,9 +71,13 @@ RUN if [ -f /usr/libexec/git-core/git-http-backend ]; then ln -sf /usr/libexec/g
 # survives image rebuilds and container restarts. Build with host networking
 # so 127.0.0.1 inside the build container reaches the host proxy:
 #   docker build --network host -t phorge-zh:latest .
+# PHORGE_CACHEBUST is only there to invalidate this layer. Docker otherwise
+# caches `git clone` and never fetches upstream again.
 # (Offline fallback: vendor the sources into ./phorge-src/ and replace the
 # git clone below with COPY ./phorge-src/... — see git history.)
-RUN git config --global http.proxy http://127.0.0.1:7890 \
+ARG PHORGE_CACHEBUST=unknown
+RUN echo "phorge cachebust=${PHORGE_CACHEBUST}" \
+    && git config --global http.proxy http://127.0.0.1:7890 \
     && git config --global https.proxy https://127.0.0.1:7890 \
     && mkdir -p /var/www/phorge/ \
     && git clone https://github.com/phorgeit/arcanist.git /var/www/phorge/arcanist \
